@@ -78,8 +78,8 @@ export class NoneExecuteStrategy implements ITerminalExecuteStrategy {
 			this._instance.sendText(commandLine, true);
 
 			// Assume the command is done when it's idle
-			this._log('Waiting for idle');
-			await waitForIdle(this._instance.onData, 1000);
+			this._log('Waiting for idle with propnt heuristics');
+			const promptResult = await waitForIdleWithPromptHeuristics(this._instance.onData, this._instace, 1000, 10000);
 
 			if (token.isCancellationRequested) {
 				throw new CancellationError();
