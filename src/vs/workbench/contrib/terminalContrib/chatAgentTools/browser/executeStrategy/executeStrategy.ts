@@ -59,8 +59,8 @@ export function detectsCommonPromptPattern(cursorLine: string): IPromptDetection
 	}
 
 	// PowerShell prompt: PS C:\> or similar patterns
-	if (/PS\s+[A-Z]:\\.*>\s*$/.test(lastline)) {
-		return true;
+	if (/PS\s+[A-Z]:\\.*>\s*$/.test(cursorLine)) {
+		return {detected: true, reason: `Powershell prompt pattern detected: "${cursorLine}"`};
 	}
 
 	// Command Prompt: C:\path>
