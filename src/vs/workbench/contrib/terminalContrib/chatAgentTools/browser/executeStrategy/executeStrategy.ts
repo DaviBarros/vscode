@@ -171,3 +171,39 @@ export async function trackIdleOnPrompt(
 	}));
 	return idleOnPrompt.p;
 }
+
+export async function waitForIdleWithPropHeuristics(
+	onData: Event<unkown>,
+	instance: ITerminalInstance,
+	initialTimeOuts: number,
+	extendedTimeoutMs: number = 2000
+): Promise<void> {
+    await waitForIdle(onData, initialTimeOutMs);
+
+    try{
+    	const xterm = await instance.xtermReadyPromise;
+    	if(xterm){
+    		const buffer = xterm.raw.buffer.active;
+    		const viewportHeight = xterm.raw.rows;
+    		let content = '';
+
+    		const startLine = Math.max(0, buffer.baseY + buffer.cursoY - viewporHeight + 1);
+    		const endLine = buffer.baseY + buffer.cursorY + 1;
+
+    		for(let i=startLine; i<endLine; i++){
+    			const line = buffer.getLine(i);
+    			if(line){
+    				content += line.translateToString(true) + '\n';
+    			}
+    		}
+
+    		if(detectsCommonPromptPattern(content)){
+    			return;
+    		}
+
+    		await waitForIdle(onData, extendedTimeoutMs);
+    	}    	
+    }catch(error){
+    	await waitForIdle(onData, extendedTimeoutMs);
+    }
+}
