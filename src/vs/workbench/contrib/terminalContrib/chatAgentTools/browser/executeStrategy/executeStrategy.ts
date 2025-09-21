@@ -59,8 +59,8 @@ export function detectsCommonPromptPattern(cursorLine: string): IPromptDetection
 	}
 
 	// PowerShell prompt: PS C:\> or similar patterns
-	if (/PS\s+[A-Z]:\\.*>\s*$/.test(cursorLine)) {
-		return { detected: true, reason: `PowerShell prompt pattern detected: "${cursorLine}"` };
+	if (/PS\s+[A-Z]:\\.*>\s*$/.test(lastline)) {
+		return true;
 	}
 
 	// Command Prompt: C:\path>
@@ -118,52 +118,7 @@ export function detectsInputRequiredPattern(cursorLine: string): boolean {
  * idles for the specified period, checks if the terminal's cursor line looks like a common prompt.
  * If not, extends the timeout to give the command more time to complete.
  */
-export async function waitForIdleWithPromptHeuristics(
-	onData: Event<unknown>,
-	instance: ITerminalInstance,
-	idlePollIntervalMs: number,
-	extendedTimeoutMs: number,
-): Promise<IPromptDetectionResult> {
-	await waitForIdle(onData, idlePollIntervalMs);
 
-	const xterm = await instance.xtermReadyPromise;
-	if (!xterm) {
-		return { detected: false, reason: `Xterm not available, using ${idlePollIntervalMs}ms timeout` };
-	}
-	const startTime = Date.now();
-
-	// Attempt to detect a prompt pattern after idle
-	while (Date.now() - startTime < extendedTimeoutMs) {
-		try {
-			let content = '';
-			const buffer = xterm.raw.buffer.active;
-			const line = buffer.getLine(buffer.baseY + buffer.cursorY);
-			if (line) {
-				content = line.translateToString(true);
-			}
-			const promptResult = detectsCommonPromptPattern(content);
-			if (promptResult.detected) {
-				return promptResult;
-			}
-		} catch (error) {
-			// Continue polling even if there's an error reading terminal content
-		}
-		await waitForIdle(onData, Math.min(idlePollIntervalMs, extendedTimeoutMs - (Date.now() - startTime)));
-	}
-
-	// Extended timeout reached without detecting a prompt
-	try {
-		let content = '';
-		const buffer = xterm.raw.buffer.active;
-		const line = buffer.getLine(buffer.baseY + buffer.cursorY);
-		if (line) {
-			content = line.translateToString(true) + '\n';
-		}
-		return { detected: false, reason: `Extended timeout reached without prompt detection. Last line: "${content.trim()}"` };
-	} catch (error) {
-		return { detected: false, reason: `Extended timeout reached. Error reading terminal content: ${error}` };
-	}
-}
 
 /**
  * Tracks the terminal for being idle on a prompt input. This must be called before `executeCommand`
